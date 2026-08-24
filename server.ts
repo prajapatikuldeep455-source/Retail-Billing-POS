@@ -1216,8 +1216,9 @@ app.post('/api/products/bulk', async (req, res) => {
       res.json({ success: true, count: insertedProducts.length });
     } catch (err: any) {
       await tx.rollback();
-      res.status(500).json({ error: err.message });
+      throw err;
     }
+  } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
