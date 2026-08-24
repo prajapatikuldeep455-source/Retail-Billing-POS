@@ -4,6 +4,12 @@ import {
   IndianRupee, Package, ArrowUpRight, ShieldCheck, FileSpreadsheet, Wallet
 } from 'lucide-react';
 import { format } from 'date-fns';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
+  PieChart as RechartsPieChart, Pie, Cell
+} from 'recharts';
+
+const COLORS = ['#4f46e5', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 type DashboardData = {
   today: { invoices: number; sales: number; taxable: number };
@@ -421,18 +427,23 @@ export default function Reports() {
               <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3">
                 Top 5 Best Selling Items
               </h3>
-              <div className="divide-y divide-slate-100">
-                {dashboard.top_products.map((p, idx) => (
-                  <div key={idx} className="py-2 flex justify-between items-center text-xs">
-                    <div>
-                      <p className="font-bold text-slate-900">{p.product_name}</p>
-                      <p className="text-[10px] text-slate-500 font-mono">{p.total_qty} units sold</p>
-                    </div>
-                    <span className="font-mono font-bold text-indigo-700">₹ {Number(p.total_sales).toFixed(2)}</span>
-                  </div>
-                ))}
-                {dashboard.top_products.length === 0 && (
-                  <p className="text-center py-6 text-slate-400 text-xs font-sans">No sales recorded yet</p>
+              <div className="h-48">
+                {dashboard.top_products.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={dashboard.top_products} layout="vertical" margin={{ top: 0, right: 20, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                      <XAxis type="number" hide />
+                      <YAxis type="category" dataKey="product_name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} width={120} />
+                      <RechartsTooltip 
+                        cursor={{ fill: '#f8fafc' }}
+                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                        formatter={(value: any) => [`₹${Number(value).toFixed(2)}`, 'Sales']}
+                      />
+                      <Bar dataKey="total_sales" fill="#4f46e5" radius={[0, 4, 4, 0]} barSize={20} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-slate-400 text-xs">No sales recorded yet</div>
                 )}
               </div>
             </div>
@@ -442,19 +453,47 @@ export default function Reports() {
               <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3">
                 Sales Collection by Payment Mode
               </h3>
-              <div className="divide-y divide-slate-100">
-                {dashboard.payment_breakdown.map((pm, idx) => (
-                  <div key={idx} className="py-2.5 flex justify-between items-center text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
-                      <span className="font-bold text-slate-900 uppercase">{pm.payment_method === 'credit' ? 'Udhar / Credit' : pm.payment_method}</span>
-                      <span className="text-[11px] text-slate-500 font-mono">({pm.count} bills)</span>
+              <div className="h-48 flex items-center">
+                {dashboard.payment_breakdown.length > 0 ? (
+                  <>
+                    <div className="w-1/2 h-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RechartsPieChart>
+                          <Pie
+                            data={dashboard.payment_breakdown}
+                            dataKey="total"
+                            nameKey="payment_method"
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={40}
+                            outerRadius={70}
+                            paddingAngle={2}
+                          >
+                            {dashboard.payment_breakdown.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <RechartsTooltip 
+                            formatter={(value: any) => [`₹${Number(value).toFixed(2)}`, 'Amount']}
+                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                          />
+                        </RechartsPieChart>
+                      </ResponsiveContainer>
                     </div>
-                    <span className="font-mono font-bold text-slate-900">₹ {Number(pm.total).toFixed(2)}</span>
-                  </div>
-                ))}
-                {dashboard.payment_breakdown.length === 0 && (
-                  <p className="text-center py-6 text-slate-400 text-xs font-sans">No collections recorded</p>
+                    <div className="w-1/2 pl-2 flex flex-col justify-center space-y-2">
+                      {dashboard.payment_breakdown.map((pm, idx) => (
+                        <div key={idx} className="flex justify-between items-center text-xs">
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }}></span>
+                            <span className="font-bold text-slate-700 capitalize">{pm.payment_method === 'credit' ? 'Udhar' : pm.payment_method}</span>
+                          </div>
+                          <span className="font-mono font-bold text-slate-900">₹{Number(pm.total).toFixed(0)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">No collections recorded</div>
                 )}
               </div>
             </div>
