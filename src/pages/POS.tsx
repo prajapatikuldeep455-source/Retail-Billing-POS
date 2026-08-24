@@ -73,31 +73,91 @@ export default function POS({ role = 'admin' }: { role?: 'admin' | 'cashier' }) 
     fetchSettings();
   }, []);
 
-  // Global Keyboard shortcuts
+  // Global Keyboard shortcuts & Background Barcode Scanner
   useEffect(() => {
+    let barcodeBuffer = '';
+    let lastKeyTime = Date.now();
+
     const handleKeyDown = (e: KeyboardEvent) => {
+      // 1. F-Key Shortcuts
       if (e.key === 'F1') {
         e.preventDefault();
         searchInputRef.current?.focus();
+        return;
       } else if (e.key === 'F2') {
         e.preventDefault();
         customerInputRef.current?.focus();
+        return;
       } else if (e.key === 'F4') {
         e.preventDefault();
         setCart(prev => prev.map(item => ({ ...item, use_wholesale: !item.use_wholesale })));
+        return;
       } else if (e.key === 'F9') {
         e.preventDefault();
         setPaymentMethod('cash');
+        return;
       } else if (e.key === 'F12') {
         e.preventDefault();
         if (!isSaving && cart.length > 0) {
           handleCheckout();
         }
+        return;
+      }
+
+      // 2. Global Barcode Scanner Capture
+      const activeTag = document.activeElement?.tagName.toLowerCase();
+      const isInputFocused = activeTag === 'input' || activeTag === 'textarea';
+      
+      const currentTime = Date.now();
+      
+      if (e.key.length === 1) {
+        if (currentTime - lastKeyTime > 50) {
+          barcodeBuffer = ''; // Reset if typing slowly (human)
+        }
+        barcodeBuffer += e.key;
+        lastKeyTime = currentTime;
+      }
+
+      if (e.key === 'Enter') {
+        if (barcodeBuffer.length > 3 && (currentTime - lastKeyTime < 50) && !isInputFocused) {
+          e.preventDefault();
+          const scannedCode = barcodeBuffer;
+          barcodeBuffer = '';
+          
+          // Background fetch and add to cart
+          fetch(`/api/products?q=${encodeURIComponent(scannedCode)}`)
+            .then(res => res.json())
+            .then(data => {
+              const exactMatch = data.find((p: Product) => p.barcode === scannedCode || p.hsn_code === scannedCode) || (data.length === 1 ? data[0] : null);
+              if (exactMatch) {
+                // Call addToCart logic manually since addToCart function might be stale in this closure
+                const allowNegative = settings.allow_negative_stock === 'true' || exactMatch.allow_negative_stock === 1;
+                setCart(prev => {
+                  const existing = prev.find(item => item.id === exactMatch.id);
+                  const newQty = existing ? existing.quantity + 1 : 1;
+                  
+                  if (!allowNegative && exactMatch.current_stock < newQty) {
+                    alert(`Warning: Insufficient stock for ${exactMatch.name}. Current Available Stock is ${exactMatch.current_stock}.`);
+                    return prev;
+                  }
+                  
+                  if (existing) {
+                    return prev.map(item => item.id === exactMatch.id ? { ...item, quantity: newQty } : item);
+                  }
+                  return [...prev, { ...exactMatch, quantity: 1, use_wholesale: false, discount: 0 }];
+                });
+              }
+            })
+            .catch(console.error);
+        } else {
+          barcodeBuffer = '';
+        }
       }
     };
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cart, customerName, customerPhone, paymentMethod, isInterState, selectedCustomerId]);
+  }, [cart, customerName, customerPhone, paymentMethod, isInterState, selectedCustomerId, isSaving, settings]);
 
   const fetchProducts = async () => {
     try {

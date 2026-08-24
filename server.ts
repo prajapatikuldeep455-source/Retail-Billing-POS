@@ -381,36 +381,7 @@ async function initDb() {
     );
   `);
 
-  // 8. Expenses (Petty Cash)
-  await db.execute(`
-    CREATE TABLE IF NOT EXISTS invoices (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      invoice_number TEXT UNIQUE NOT NULL,
-      date TEXT NOT NULL,
-      customer_id INTEGER,
-      customer_name TEXT,
-      customer_phone TEXT,
-      customer_gstin TEXT,
-      payment_method TEXT,
-      payment_status TEXT DEFAULT 'paid',
-      upi_ref TEXT,
-      subtotal REAL NOT NULL,
-      discount REAL DEFAULT 0,
-      cgst_total REAL DEFAULT 0,
-      sgst_total REAL DEFAULT 0,
-      igst_total REAL DEFAULT 0,
-      grand_total REAL NOT NULL,
-      status TEXT DEFAULT 'paid',
-      is_inter_state INTEGER DEFAULT 0,
-      cashier_name TEXT DEFAULT 'Admin Desk'
-    );
-  `);
-
-  await safeAddColumn('invoices', 'customer_id INTEGER');
-  await safeAddColumn('invoices', 'payment_status TEXT DEFAULT "paid"');
-  await safeAddColumn('invoices', 'upi_ref TEXT');
-  await safeAddColumn('invoices', 'cashier_name TEXT DEFAULT "Admin Desk"');
-  await safeAddColumn('invoices', 'customer_gstin TEXT');
+  // Duplicate invoices creation removed (consolidated earlier above to avoid duplication)
 
   await db.execute(`
     CREATE TABLE IF NOT EXISTS invoice_items (
