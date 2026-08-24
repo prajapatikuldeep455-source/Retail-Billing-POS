@@ -15,10 +15,12 @@
     "clean": "rimraf dist server.cjs release",
     "lint": "tsc --noEmit",
     "start": "tsx server.ts",
-    "dist:win": "npm run build && npm run build:server && electron-builder --win --x64 --publish never"
+    "dist:win": "npm run build && npm run build:server && electron-builder --win --x64 --publish never",
+    "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
+    "@libsql/client": "^0.17.4",
     "better-sqlite3": "^13.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",

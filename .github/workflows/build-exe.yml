@@ -28,7 +28,7 @@ jobs:
         run: npx esbuild server.ts --bundle --platform=node --target=node20 --outfile=server.cjs --external:better-sqlite3
 
       - name: Rebuild native modules for Electron
-        run: npx electron-rebuild
+        run: npx electron-builder install-app-deps
 
       - name: Build Electron EXE
         run: npx electron-builder --win --x64 --publish never
