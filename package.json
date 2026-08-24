@@ -47,7 +47,7 @@
     "directories": {
       "output": "release"
     },
-    "asar": false,
+    "asar": true,
     "win": {
       "target": "nsis"
     },
@@ -62,8 +62,7 @@
       "dist/**/*",
       "server.cjs",
       "electron/**/*",
-      "package.json",
-      "node_modules/**/*"
+      "package.json"
     ]
   },
   "devDependencies": {
@@ -76,7 +75,7 @@
     "concurrently": "^10.0.5",
     "electron": "^43.4.1",
     "electron-builder": "^26.15.3",
-    "esbuild": "^0.25.0",
+    "esbuild": "^0.25.12",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
