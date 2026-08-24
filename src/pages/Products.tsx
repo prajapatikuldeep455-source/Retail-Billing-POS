@@ -228,8 +228,10 @@ export default function Products({ role = 'admin' }: { role?: 'admin' | 'cashier
   const fetchProducts = async () => {
     try {
       const res = await fetch('/api/products');
-      const data = await res.json();
-      setProducts(data);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) setProducts(data);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -898,9 +900,9 @@ export default function Products({ role = 'admin' }: { role?: 'admin' | 'cashier
                 <input
                   required
                   type="number"
-                  min="1"
+                  min={adjustForm.type === 'SET' ? "0" : "1"}
                   value={adjustForm.change_qty}
-                  onChange={e => setAdjustForm({ ...adjustForm, change_qty: Math.max(1, Number(e.target.value) || 1) })}
+                  onChange={e => setAdjustForm({ ...adjustForm, change_qty: Math.max(adjustForm.type === 'SET' ? 0 : 1, Number(e.target.value) || 0) })}
                   className="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
                 />
               </div>

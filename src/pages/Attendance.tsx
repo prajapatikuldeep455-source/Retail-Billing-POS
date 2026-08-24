@@ -91,7 +91,7 @@ export default function Attendance({ role }: { role?: 'admin' | 'cashier' }) {
       const res = await fetch(`/api/attendance/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ check_out: now, notes: '' })
+        body: JSON.stringify({ check_out: now })
       });
       if (res.ok) {
         fetchAttendance();
@@ -141,7 +141,11 @@ export default function Attendance({ role }: { role?: 'admin' | 'cashier' }) {
             />
           </div>
           <button
-            onClick={() => setIsCheckInModalOpen(true)}
+            onClick={() => {
+              setEditingId(null);
+              setCheckInForm({ staff_name: '', role: 'cashier', notes: '' });
+              setIsCheckInModalOpen(true);
+            }}
             className="px-3.5 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold shadow-md hover:bg-indigo-700 uppercase tracking-wide flex items-center gap-1 transition-all"
           >
             <Plus size={14} /> Check In

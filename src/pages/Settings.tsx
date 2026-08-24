@@ -30,7 +30,7 @@ export default function Settings({ onSettingsSaved }: { onSettingsSaved?: () => 
   const [backupStatus, setBackupStatus] = useState<string | null>(null);
 
   const handleBackup = () => {
-    window.location.href = 'http://localhost:3001/api/system/backup';
+    window.location.href = '/api/system/backup';
   };
 
   const handleRestore = async (event: ChangeEvent<HTMLInputElement>) => {

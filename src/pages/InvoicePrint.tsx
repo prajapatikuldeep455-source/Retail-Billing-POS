@@ -47,12 +47,15 @@ export default function InvoicePrint() {
 
     if (id) {
       fetch(`/api/invoices/${id}`)
-        .then(res => res.json())
-        .then(data => {
-          setInvoice(data);
-          setTimeout(() => {
-            window.print();
-          }, 500);
+        .then(async res => {
+          if (!res.ok) return;
+          const data = await res.json();
+          if (data && data.invoice_number) {
+            setInvoice(data);
+            setTimeout(() => {
+              window.print();
+            }, 500);
+          }
         })
         .catch(console.error);
     }

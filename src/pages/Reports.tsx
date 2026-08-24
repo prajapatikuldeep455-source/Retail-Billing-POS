@@ -168,7 +168,7 @@ export default function Reports() {
   };
 
   const exportGstr1Csv = () => {
-    if (!gstData || !gstData.hsn_summary.length) {
+    if (!gstData || !gstData.hsn_summary?.length) {
       alert('No GST data available to export.');
       return;
     }
@@ -487,11 +487,11 @@ export default function Reports() {
 
             {gstData && (
               <div className="ml-auto flex items-center gap-4 text-xs font-mono">
-                <div>Taxable: <span className="font-bold">₹{Number(gstData.tax_totals.total_taxable || 0).toFixed(2)}</span></div>
-                <div>CGST: <span className="font-bold">₹{Number(gstData.tax_totals.total_cgst || 0).toFixed(2)}</span></div>
-                <div>SGST: <span className="font-bold">₹{Number(gstData.tax_totals.total_sgst || 0).toFixed(2)}</span></div>
-                <div>IGST: <span className="font-bold">₹{Number(gstData.tax_totals.total_igst || 0).toFixed(2)}</span></div>
-                <div className="text-indigo-700 font-bold">Total: ₹{Number(gstData.tax_totals.total_grand || 0).toFixed(2)}</div>
+                <div>Taxable: <span className="font-bold">₹{Number(gstData.tax_totals?.total_taxable || 0).toFixed(2)}</span></div>
+                <div>CGST: <span className="font-bold">₹{Number(gstData.tax_totals?.total_cgst || 0).toFixed(2)}</span></div>
+                <div>SGST: <span className="font-bold">₹{Number(gstData.tax_totals?.total_sgst || 0).toFixed(2)}</span></div>
+                <div>IGST: <span className="font-bold">₹{Number(gstData.tax_totals?.total_igst || 0).toFixed(2)}</span></div>
+                <div className="text-indigo-700 font-bold">Total: ₹{Number(gstData.tax_totals?.total_grand || 0).toFixed(2)}</div>
               </div>
             )}
           </div>
@@ -679,13 +679,13 @@ export default function Reports() {
                   <div className="flex justify-between items-center text-xs font-bold text-slate-800 mb-2">
                     <span>From Cash Sales</span>
                     <span className="font-mono text-emerald-700">
-                      ₹ {(daybookData.in_sales.find(x => x.payment_method === 'cash')?.amount || 0).toFixed(2)}
+                      ₹ {(daybookData?.in_sales?.find(x => x.payment_method === 'cash')?.amount || 0).toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-xs font-bold text-slate-800 mb-2">
                     <span>From Udhar Collections</span>
                     <span className="font-mono text-emerald-700">
-                      ₹ {(daybookData.in_udhar.find(x => x.payment_mode === 'cash')?.amount || 0).toFixed(2)}
+                      ₹ {(daybookData?.in_udhar?.find(x => x.payment_mode === 'cash')?.amount || 0).toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -693,8 +693,8 @@ export default function Reports() {
               <div className="mt-4 pt-3 border-t border-emerald-200 flex justify-between items-center">
                 <span className="text-sm font-bold text-emerald-900">Total Cash In</span>
                 <span className="text-lg font-bold font-mono text-emerald-700">
-                  ₹ {((daybookData.in_sales.find(x => x.payment_method === 'cash')?.amount || 0) + 
-                       (daybookData.in_udhar.find(x => x.payment_mode === 'cash')?.amount || 0)).toFixed(2)}
+                  ₹ {((daybookData?.in_sales?.find(x => x.payment_method === 'cash')?.amount || 0) + 
+                       (daybookData?.in_udhar?.find(x => x.payment_mode === 'cash')?.amount || 0)).toFixed(2)}
                 </span>
               </div>
             </div>
@@ -709,13 +709,13 @@ export default function Reports() {
                   <div className="flex justify-between items-center text-xs font-bold text-slate-800 mb-2">
                     <span>To Vendor Purchases</span>
                     <span className="font-mono text-rose-700">
-                      ₹ {(daybookData.out_purchases.find(x => x.payment_method === 'cash')?.amount || 0).toFixed(2)}
+                      ₹ {(daybookData?.out_purchases?.find(x => x.payment_method === 'cash')?.amount || 0).toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-xs font-bold text-slate-800 mb-2">
                     <span>Petty Cash Expenses</span>
                     <span className="font-mono text-rose-700">
-                      ₹ {(daybookData.out_expenses.find(x => x.payment_mode === 'cash')?.amount || 0).toFixed(2)}
+                      ₹ {(daybookData?.out_expenses?.find(x => x.payment_mode === 'cash')?.amount || 0).toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -723,8 +723,8 @@ export default function Reports() {
               <div className="mt-4 pt-3 border-t border-rose-200 flex justify-between items-center">
                 <span className="text-sm font-bold text-rose-900">Total Cash Out</span>
                 <span className="text-lg font-bold font-mono text-rose-700">
-                  ₹ {((daybookData.out_purchases.find(x => x.payment_method === 'cash')?.amount || 0) + 
-                       (daybookData.out_expenses.find(x => x.payment_mode === 'cash')?.amount || 0)).toFixed(2)}
+                  ₹ {((daybookData?.out_purchases?.find(x => x.payment_method === 'cash')?.amount || 0) + 
+                       (daybookData?.out_expenses?.find(x => x.payment_mode === 'cash')?.amount || 0)).toFixed(2)}
                 </span>
               </div>
             </div>
@@ -733,14 +733,14 @@ export default function Reports() {
             <div className="col-span-1 md:col-span-2 bg-indigo-50/50 rounded-xl border border-indigo-200 p-5 mt-2 flex justify-between items-center">
               <div>
                 <h3 className="text-sm font-bold text-indigo-900 uppercase tracking-wider">End of Day Expected Cash</h3>
-                <p className="text-[11px] text-indigo-600 font-medium">Expected physical cash in drawer for {format(new Date(daybookDate), 'dd MMM yyyy')}</p>
+                <p className="text-[11px] text-indigo-600 font-medium">Expected physical cash in drawer for {format(new Date(daybookDate + 'T00:00:00'), 'dd MMM yyyy')}</p>
               </div>
               <div className="text-right">
                 <span className="text-2xl font-bold font-mono text-indigo-700">
-                  ₹ {(((daybookData.in_sales.find(x => x.payment_method === 'cash')?.amount || 0) + 
-                       (daybookData.in_udhar.find(x => x.payment_mode === 'cash')?.amount || 0)) - 
-                      ((daybookData.out_purchases.find(x => x.payment_method === 'cash')?.amount || 0) + 
-                       (daybookData.out_expenses.find(x => x.payment_mode === 'cash')?.amount || 0))).toFixed(2)}
+                  ₹ {(((daybookData?.in_sales?.find(x => x.payment_method === 'cash')?.amount || 0) + 
+                       (daybookData?.in_udhar?.find(x => x.payment_mode === 'cash')?.amount || 0)) - 
+                      ((daybookData?.out_purchases?.find(x => x.payment_method === 'cash')?.amount || 0) + 
+                       (daybookData?.out_expenses?.find(x => x.payment_mode === 'cash')?.amount || 0))).toFixed(2)}
                 </span>
               </div>
             </div>

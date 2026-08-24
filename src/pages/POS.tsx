@@ -66,9 +66,12 @@ export default function POS({ role = 'admin' }: { role?: 'admin' | 'cashier' }) 
 
   useEffect(() => {
     fetchProducts();
+  }, [search]);
+
+  useEffect(() => {
     fetchCustomers();
     fetchSettings();
-  }, [search]);
+  }, []);
 
   // Global Keyboard shortcuts
   useEffect(() => {
@@ -87,7 +90,9 @@ export default function POS({ role = 'admin' }: { role?: 'admin' | 'cashier' }) 
         setPaymentMethod('cash');
       } else if (e.key === 'F12') {
         e.preventDefault();
-        handleCheckout();
+        if (!isSaving && cart.length > 0) {
+          handleCheckout();
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -265,6 +270,9 @@ export default function POS({ role = 'admin' }: { role?: 'admin' | 'cashier' }) 
       setCustomerName(cust.name);
       setCustomerPhone(cust.phone);
       setCustomerCredit(cust.credit_balance);
+    } else {
+      setSelectedCustomerId(null);
+      setCustomerCredit(0);
     }
   };
 
@@ -323,19 +331,19 @@ export default function POS({ role = 'admin' }: { role?: 'admin' | 'cashier' }) 
   const upiURI = `upi://pay?pa=${upiId}&pn=${upiMerchant}&am=${grandTotal.toFixed(2)}&cu=INR&tn=Retail_POS_Bill`;
 
   const handleCheckout = async () => {
+    if (isSaving) return;
+    if (paymentMethod === 'upi' && !upiPaymentSimulated) {
+      alert('Please verify UPI payment before generating invoice.');
+      return;
+    }
+
     if (cart.length === 0) {
       alert('Cart is empty. Please add items to generate invoice.');
       return;
     }
 
-    if (!customerName.trim() || !customerPhone.trim()) {
-      alert('Customer Name and Mobile Number are mandatory to generate a bill.');
-      customerInputRef.current?.focus();
-      return;
-    }
-
-    if (paymentMethod === 'credit' && !customerPhone) {
-      alert('Mobile number is required to generate a Credit / Udhar bill.');
+    if (paymentMethod === 'credit' && (!customerName.trim() || !customerPhone.trim())) {
+      alert('Customer Name and Mobile Number are required for Credit / Udhar bills.');
       customerInputRef.current?.focus();
       return;
     }
@@ -891,6 +899,38 @@ export default function POS({ role = 'admin' }: { role?: 'admin' | 'cashier' }) 
           </button>
         </div>
       </aside>
+      {showHeldBillsModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden">
+            <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+              <h3 className="font-black text-sm text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                <Pause size={16} className="text-indigo-600" /> Held Bills ({heldBills.length})
+              </h3>
+              <button onClick={() => setShowHeldBillsModal(false)} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+            </div>
+            <div className="p-6">
+              {heldBills.length === 0 ? (
+                <p className="text-xs text-slate-500 text-center py-8">No held bills. Use the Hold button to park a bill for later.</p>
+              ) : (
+                <div className="space-y-2 max-h-72 overflow-y-auto">
+                  {heldBills.map(b => (
+                    <div key={b.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center">
+                      <div>
+                        <p className="font-bold text-xs text-slate-800">{b.customerName || 'Walk-in Customer'}</p>
+                        <p className="text-[10px] text-slate-400 font-mono">{b.cart.length} items • Held at {b.time}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => { resumeBill(b); setShowHeldBillsModal(false); }} className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold">Resume</button>
+                        <button onClick={() => setHeldBills(prev => prev.filter(h => h.id !== b.id))} className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold">Discard</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

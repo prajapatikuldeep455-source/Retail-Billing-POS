@@ -198,7 +198,7 @@ export default function App() {
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key >= '0' && e.key <= '9') {
-        if (pinInput.length < 6) {
+        if (pinInput.length < 4) {
           setPinInput(prev => prev + e.key);
           setLoginError('');
         }
@@ -219,7 +219,7 @@ export default function App() {
   }, [isAuthenticated, pinInput, switchUserModalOpen, selectedLoginUser, authMode]);
 
   const handleNumpadPress = (digit: string) => {
-    if (pinInput.length < 6) {
+    if (pinInput.length < 4) {
       setPinInput(prev => prev + digit);
       setLoginError('');
     }
@@ -453,6 +453,8 @@ export default function App() {
         <Routes>
           <Route path="/invoices/print/:id" element={<InvoicePrint />} />
           <Route path="/returns/print/:id" element={<ReturnPrint />} />
+          <Route path="/print/:id" element={<InvoicePrint />} />
+          <Route path="/print-return/:id" element={<ReturnPrint />} />
         </Routes>
       </Suspense>
     );
@@ -1236,6 +1238,7 @@ export default function App() {
             <Route path="/reports" element={<Reports />} />
             <Route path="/users" element={<UsersPage currentUser={currentUser} role={role} />} />
             <Route path="/settings" element={<SettingsPage onSettingsSaved={fetchStoreSettings} />} />
+            <Route path="*" element={<POS role={role as any} />} />
           </Routes>
         </Suspense>
       </main>

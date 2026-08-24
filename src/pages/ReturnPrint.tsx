@@ -39,12 +39,15 @@ export default function ReturnPrint() {
 
     if (id) {
       fetch(`/api/returns/${id}`)
-        .then(res => res.json())
-        .then(data => {
-          setReturnDoc(data);
-          setTimeout(() => {
-            window.print();
-          }, 500);
+        .then(async res => {
+          if (!res.ok) return;
+          const data = await res.json();
+          if (data && data.return_number) {
+            setReturnDoc(data);
+            setTimeout(() => {
+              window.print();
+            }, 500);
+          }
         })
         .catch(console.error);
     }
@@ -68,9 +71,9 @@ export default function ReturnPrint() {
         {/* Store Header */}
         <div className="text-center w-full border-b border-dashed border-black pb-2 mb-2">
           <h1 className="text-base font-bold uppercase tracking-wider">{settings.shop_name || 'RETAIL POS'}</h1>
-          {settings.address && <p className="text-[11px] mt-0.5">{settings.address}</p>}
-          {settings.phone && <p className="text-[11px]">Tel: {settings.phone}</p>}
-          {settings.gstin && <p className="text-[11px] font-bold">GSTIN: {settings.gstin}</p>}
+          {settings.shop_address && <p className="text-[11px] mt-0.5">{settings.shop_address}</p>}
+          {settings.shop_phone && <p className="text-[11px]">Tel: {settings.shop_phone}</p>}
+          {settings.shop_gstin && <p className="text-[11px] font-bold">GSTIN: {settings.shop_gstin}</p>}
         </div>
 
         {/* Document Title */}
@@ -161,6 +164,12 @@ export default function ReturnPrint() {
           <p className="text-[9px] text-gray-500">Authorized Signature _________________</p>
         </div>
       </div>
+      <style>{`
+        @media print {
+          @page { margin: 0; size: 80mm 297mm; }
+          body { margin: 0; padding: 0; }
+        }
+      `}</style>
     </div>
   );
 }

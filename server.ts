@@ -195,6 +195,8 @@ async function initDb() {
     );
   `);
 
+  await safeAddColumn('customers', 'loyalty_points REAL DEFAULT 0');
+
   await db.execute(`
     CREATE TABLE IF NOT EXISTS customer_transactions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -256,6 +258,63 @@ async function initDb() {
       FOREIGN KEY (purchase_id) REFERENCES purchases(id) ON DELETE CASCADE
     );
   `);
+
+  // 7. Invoices & Invoice Items
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS invoices (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      invoice_number TEXT UNIQUE NOT NULL,
+      date TEXT NOT NULL,
+      customer_id INTEGER,
+      customer_name TEXT,
+      customer_phone TEXT,
+      customer_gstin TEXT,
+      payment_method TEXT,
+      payment_status TEXT DEFAULT 'paid',
+      upi_ref TEXT,
+      subtotal REAL NOT NULL,
+      discount REAL DEFAULT 0,
+      cgst_total REAL DEFAULT 0,
+      sgst_total REAL DEFAULT 0,
+      igst_total REAL DEFAULT 0,
+      grand_total REAL NOT NULL,
+      status TEXT DEFAULT 'paid',
+      is_inter_state INTEGER DEFAULT 0,
+      cashier_name TEXT DEFAULT 'Admin Desk'
+    );
+  `);
+
+  await safeAddColumn('invoices', 'customer_id INTEGER');
+  await safeAddColumn('invoices', 'payment_status TEXT DEFAULT "paid"');
+  await safeAddColumn('invoices', 'upi_ref TEXT');
+  await safeAddColumn('invoices', 'cashier_name TEXT DEFAULT "Admin Desk"');
+  await safeAddColumn('invoices', 'customer_gstin TEXT');
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS invoice_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      invoice_id INTEGER NOT NULL,
+      product_id INTEGER,
+      product_name TEXT NOT NULL,
+      hsn_code TEXT,
+      batch_number TEXT,
+      quantity REAL NOT NULL,
+      unit_price REAL NOT NULL,
+      purchase_cost REAL DEFAULT 0,
+      discount REAL DEFAULT 0,
+      taxable_value REAL NOT NULL,
+      gst_rate REAL DEFAULT 0,
+      cgst_amount REAL DEFAULT 0,
+      sgst_amount REAL DEFAULT 0,
+      igst_amount REAL DEFAULT 0,
+      line_total REAL NOT NULL,
+      FOREIGN KEY (invoice_id) REFERENCES invoices(id)
+    );
+  `);
+
+  await safeAddColumn('invoice_items', 'batch_number TEXT');
+  await safeAddColumn('invoice_items', 'purchase_cost REAL DEFAULT 0');
+
 
   // 8. Sales Returns & Credit Notes
   await db.execute(`
@@ -322,7 +381,7 @@ async function initDb() {
     );
   `);
 
-  // 7. Invoices & Invoice Items
+  // 8. Expenses (Petty Cash)
   await db.execute(`
     CREATE TABLE IF NOT EXISTS invoices (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -537,7 +596,7 @@ async function bootstrapDb() {
   }
 }
 
-bootstrapDb();
+bootstrapDb().catch(console.error);
 
 
 // -------------------------------------------------------------
@@ -1128,34 +1187,37 @@ app.post('/api/products/bulk', async (req, res) => {
     const insertedProducts = [];
     
     // We can do a simple loop since SQLite is fast, or a big transaction
-    await db.execute({ sql: 'BEGIN TRANSACTION', args: [] });
+    const tx = await db.transaction();
     
-    for (const prod of products) {
-      const { 
-        name, barcode, category, hsn_code, gst_rate, retail_price, 
-        wholesale_price, purchase_cost, mrp, unit, current_stock, min_stock_alert, allow_negative_stock 
-      } = prod;
+    try {
+      for (const prod of products) {
+        const { 
+          name, barcode, category, hsn_code, gst_rate, retail_price, 
+          wholesale_price, purchase_cost, mrp, unit, current_stock, min_stock_alert, allow_negative_stock 
+        } = prod;
+        
+        const result = await tx.execute({
+          sql: `INSERT INTO products (
+            name, barcode, category, hsn_code, gst_rate, retail_price, wholesale_price, 
+            purchase_cost, mrp, unit, current_stock, min_stock_alert, allow_negative_stock
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
+          args: [
+            name, barcode || null, category || 'Uncategorized', hsn_code || null, 
+            Number(gst_rate) || 0, Number(retail_price) || 0, Number(wholesale_price) || 0, 
+            Number(purchase_cost) || 0, Number(mrp) || 0, unit || 'pcs', 
+            Number(current_stock) || 0, Number(min_stock_alert) || 5, allow_negative_stock ? 1 : 0
+          ]
+        });
+        insertedProducts.push(result.rows[0]);
+      }
       
-      const result = await db.execute({
-        sql: `INSERT INTO products (
-          name, barcode, category, hsn_code, gst_rate, retail_price, wholesale_price, 
-          purchase_cost, mrp, unit, current_stock, min_stock_alert, allow_negative_stock
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
-        args: [
-          name, barcode || null, category || 'Uncategorized', hsn_code || null, 
-          Number(gst_rate) || 0, Number(retail_price) || 0, Number(wholesale_price) || 0, 
-          Number(purchase_cost) || 0, Number(mrp) || 0, unit || 'pcs', 
-          Number(current_stock) || 0, Number(min_stock_alert) || 5, allow_negative_stock ? 1 : 0
-        ]
-      });
-      insertedProducts.push(result.rows[0]);
+      await tx.commit();
+      
+      res.json({ success: true, count: insertedProducts.length });
+    } catch (err: any) {
+      await tx.rollback();
+      res.status(500).json({ error: err.message });
     }
-    
-    await db.execute({ sql: 'COMMIT', args: [] });
-    
-    res.json({ success: true, count: insertedProducts.length });
-  } catch (err: any) {
-    await db.execute({ sql: 'ROLLBACK', args: [] });
     res.status(500).json({ error: err.message });
   }
 });
@@ -1510,6 +1572,18 @@ app.post('/api/invoices/:id/cancel', async (req, res) => {
       }
     }
 
+    if (invoice.payment_method === 'credit' && invoice.customer_id) {
+      await db.execute({
+        sql: 'UPDATE customers SET credit_balance = credit_balance - ? WHERE id = ?',
+        args: [invoice.grand_total, invoice.customer_id]
+      });
+      await db.execute({
+        sql: `INSERT INTO customer_transactions (customer_id, invoice_id, type, amount, balance_after, payment_mode, notes, created_at)
+              VALUES (?, ?, 'BILL_CANCELLED', ?, (SELECT credit_balance FROM customers WHERE id = ?), 'credit', 'Cancellation of Invoice ' || ?, ?)`,
+        args: [invoice.customer_id, invoiceId, invoice.grand_total, invoice.customer_id, invoice.invoice_number, new Date().toISOString()]
+      });
+    }
+
     // 4. Mark invoice as cancelled
     await db.execute({
       sql: 'UPDATE invoices SET status = ? WHERE id = ?',
@@ -1619,6 +1693,10 @@ app.delete('/api/customers/:id', async (req, res) => {
     try {
       await tx.execute({
         sql: 'UPDATE invoices SET customer_id = NULL WHERE customer_id = ?',
+        args: [custId]
+      });
+      await tx.execute({
+        sql: 'UPDATE sales_returns SET customer_id = NULL WHERE customer_id = ?',
         args: [custId]
       });
       await tx.execute({
@@ -1911,7 +1989,7 @@ app.get('/api/reports/profit-loss', async (req, res) => {
       margin_percentage: margin,
       daily_trends: dailyRes.rows
     });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
@@ -1993,25 +2071,25 @@ app.get('/api/reports/daybook', async (req, res) => {
     // Get cash IN from Invoices
     const salesInResult = await db.execute({
       sql: "SELECT payment_method, COALESCE(SUM(grand_total), 0) as amount FROM invoices WHERE date >= ? AND date <= ? GROUP BY payment_method",
-      args: [`${targetDate}T00:00:00`, `${targetDate}T23:59:59`]
+      args: [`${targetDate}T00:00:00`, `${targetDate}T23:59:59.999Z`]
     });
     
     // Get cash IN from Udhar Settlements
     const udharInResult = await db.execute({
       sql: "SELECT payment_mode, COALESCE(SUM(amount), 0) as amount FROM customer_transactions WHERE type = 'PAYMENT_RECEIVED' AND created_at >= ? AND created_at <= ? GROUP BY payment_mode",
-      args: [`${targetDate}T00:00:00`, `${targetDate}T23:59:59`]
+      args: [`${targetDate}T00:00:00`, `${targetDate}T23:59:59.999Z`]
     });
 
     // Get cash OUT from Purchases
     const purchasesOutResult = await db.execute({
       sql: "SELECT payment_method, COALESCE(SUM(grand_total), 0) as amount FROM purchases WHERE date >= ? AND date <= ? GROUP BY payment_method",
-      args: [`${targetDate}T00:00:00`, `${targetDate}T23:59:59`]
+      args: [`${targetDate}T00:00:00`, `${targetDate}T23:59:59.999Z`]
     });
     
     // Get cash OUT from Petty Cash Expenses
     const expensesOutResult = await db.execute({
       sql: "SELECT payment_mode, COALESCE(SUM(amount), 0) as amount FROM expenses WHERE date >= ? AND date <= ? GROUP BY payment_mode",
-      args: [`${targetDate}T00:00:00`, `${targetDate}T23:59:59`]
+      args: [`${targetDate}T00:00:00`, `${targetDate}T23:59:59.999Z`]
     });
 
     res.json({
@@ -2050,7 +2128,7 @@ app.get('/api/reports/gst', async (req, res) => {
         GROUP BY hsn_code, gst_rate
         ORDER BY taxable_value DESC
       `,
-      args: [from, `${to}T23:59:59`]
+      args: [from, `${to}T23:59:59.999Z`]
     });
 
     // Total GST Taxes Collected
@@ -2065,7 +2143,7 @@ app.get('/api/reports/gst', async (req, res) => {
         FROM invoices
         WHERE date >= ? AND date <= ?
       `,
-      args: [from, `${to}T23:59:59`]
+      args: [from, `${to}T23:59:59.999Z`]
     });
 
     // All Sale Bills
@@ -2078,7 +2156,7 @@ app.get('/api/reports/gst', async (req, res) => {
         WHERE date >= ? AND date <= ?
         ORDER BY date DESC
       `,
-      args: [from, `${to}T23:59:59`]
+      args: [from, `${to}T23:59:59.999Z`]
     });
 
     res.json({
@@ -2099,7 +2177,7 @@ app.get('/api/expenses', async (req, res) => {
   try {
     const fromDate = (req.query.from as string) || new Date().toISOString().split('T')[0];
     let toDate = (req.query.to as string) || new Date().toISOString().split('T')[0];
-    toDate = `${toDate}T23:59:59`;
+    toDate = `${toDate}T23:59:59.999Z`;
 
     const result = await db.execute({
       sql: 'SELECT * FROM expenses WHERE date >= ? AND date <= ? ORDER BY date DESC',

@@ -133,6 +133,7 @@ export default function Customers({ role = 'admin' }: { role?: 'admin' | 'cashie
   };
 
   const openPaymentModal = (cust: Customer) => {
+    setFormError(null);
     setSelectedCustomer(cust);
     setPaymentAmount(cust.credit_balance);
     setPaymentNotes('Udhar Payment Settle');
@@ -566,7 +567,7 @@ export default function Customers({ role = 'admin' }: { role?: 'admin' | 'cashie
                           {/* Delete Customer */}
                           {role === 'admin' && (
                             <button
-                              onClick={() => setDeleteConfirmModal({ open: true, customer: cust })}
+                              onClick={() => { setFormError(null); setDeleteConfirmModal({ open: true, customer: cust }); }}
                               className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded transition-colors"
                               title="Delete Customer"
                             >
@@ -885,6 +886,11 @@ export default function Customers({ role = 'admin' }: { role?: 'admin' | 'cashie
             </div>
 
             <form onSubmit={handleSettlePayment} className="p-6 space-y-4">
+              {formError && (
+                <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-xs font-semibold text-rose-700 flex items-center gap-2">
+                  <AlertCircle size={14} /> {formError}
+                </div>
+              )}
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Party Account</p>
                 <p className="text-sm font-black text-slate-900 mt-0.5">{selectedCustomer.name}</p>
@@ -1101,6 +1107,11 @@ export default function Customers({ role = 'admin' }: { role?: 'admin' | 'cashie
               <AlertTriangle size={24} />
             </div>
             <h3 className="text-center font-black text-slate-900 text-sm">Delete Customer Account?</h3>
+            {formError && (
+              <div className="mt-3 p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-xs font-semibold text-rose-700 flex items-center gap-2">
+                <AlertCircle size={14} /> {formError}
+              </div>
+            )}
             <p className="text-center text-xs text-slate-500 mt-1">
               Are you sure you want to remove <strong className="text-slate-800">{deleteConfirmModal.customer.name}</strong>?
             </p>

@@ -175,7 +175,7 @@ export default function Invoices({ role = 'admin' }: { role?: 'admin' | 'cashier
       `Date: ${format(new Date(inv.date), 'dd-MMM-yyyy')}\n` +
       `Customer: ${inv.customer_name || 'Walk-in'}\n` +
       `Grand Total: Rs. ${inv.grand_total.toFixed(2)}\n` +
-      `Payment Mode: ${inv.payment_method.toUpperCase()}\n\n` +
+      `Payment Mode: ${(inv.payment_method || 'cash').toUpperCase()}\n\n` +
       `Please find the PDF attached (Downloaded to your device). Thank you for shopping with us!`
     );
     window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${text}`, '_blank');

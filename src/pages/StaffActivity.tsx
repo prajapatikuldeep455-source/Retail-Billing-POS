@@ -31,9 +31,9 @@ export default function StaffActivity({ role }: { role?: string }) {
   }
 
   const filtered = activities.filter(a => 
-    a.user_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    a.action_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (a.description && a.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    (a.user_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (a.action_type || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (a.description || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (

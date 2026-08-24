@@ -71,6 +71,7 @@ export default function Expenses({ role = 'admin' }: { role?: 'admin' | 'cashier
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
+          date: filterDate,
           amount: Number(form.amount)
         })
       });

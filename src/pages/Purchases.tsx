@@ -109,18 +109,21 @@ export default function Purchases({ role = 'admin' }: { role?: 'admin' | 'cashie
   };
 
   const addPurchaseItem = (product: Product) => {
+    const defaultQty = 10;
     const cost = product.purchase_cost || 0;
-    const tax = (cost * 1 * product.gst_rate) / 100;
+    const gstRate = product.gst_rate || 0;
+    const sub = cost * defaultQty;
+    const tax = (sub * gstRate) / 100;
     const item: PurchaseItemRow = {
       product_id: product.id,
       product_name: product.name,
       batch_number: '',
       expiry_date: '',
-      quantity: 10,
+      quantity: defaultQty,
       purchase_cost: cost,
-      gst_rate: product.gst_rate,
+      gst_rate: gstRate,
       tax_amount: tax,
-      line_total: cost * 10 + tax * 10
+      line_total: sub + tax
     };
     setPurchaseItems([...purchaseItems, item]);
   };
@@ -205,9 +208,9 @@ export default function Purchases({ role = 'admin' }: { role?: 'admin' | 'cashie
   };
 
   const filteredPurchases = purchases.filter(p => 
-    p.purchase_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.supplier_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (p.invoice_ref && p.invoice_ref.toLowerCase().includes(searchTerm.toLowerCase()))
+    (p.purchase_number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (p.supplier_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (p.invoice_ref || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -305,7 +308,7 @@ export default function Purchases({ role = 'admin' }: { role?: 'admin' | 'cashie
                       <td className="py-2.5 px-3.5 text-slate-400">{idx + 1}</td>
                       <td className="py-2.5 px-3.5 font-bold text-indigo-700">{p.purchase_number}</td>
                       <td className="py-2.5 px-3.5 text-slate-600 font-sans">
-                        {format(new Date(p.date), 'dd-MMM-yyyy')}
+                        {p.date && !isNaN(new Date(p.date).getTime()) ? format(new Date(p.date), 'dd-MMM-yyyy') : '—'}
                       </td>
                       <td className="py-2.5 px-3.5 font-sans font-bold text-slate-900">{p.supplier_name}</td>
                       <td className="py-2.5 px-3.5 text-slate-600">{p.invoice_ref || '—'}</td>

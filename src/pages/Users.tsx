@@ -123,6 +123,10 @@ export default function UsersPage({
       setFormError('Security PIN must be at least 4 digits.');
       return;
     }
+    if (editingUserId && form.pin && form.pin.length < 4) {
+      setFormError('Security PIN must be at least 4 digits.');
+      return;
+    }
 
     setIsSaving(true);
     try {
@@ -368,11 +372,11 @@ export default function UsersPage({
             <tbody className="divide-y divide-slate-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400">Loading registered staff...</td>
+                  <td colSpan={currentUser?.role === 'admin' ? 7 : 6} className="py-12 text-center text-slate-400">Loading registered staff...</td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center">
+                  <td colSpan={currentUser?.role === 'admin' ? 7 : 6} className="py-12 text-center">
                     <UserCheck size={32} className="mx-auto text-slate-300 mb-2" />
                     <p className="font-semibold text-slate-600">No staff members found</p>
                   </td>

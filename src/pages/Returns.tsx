@@ -178,7 +178,7 @@ export default function Returns({ role = 'admin' }: { role?: 'admin' | 'cashier'
     const ratio = it.returnQty / it.quantity;
     const itemRefund = it.line_total * ratio;
     const itemTaxable = it.taxable_value * ratio;
-    const itemTax = (it.cgst_amount + it.sgst_amount + it.igst_amount) * ratio;
+    const itemTax = (Number(it.cgst_amount || 0) + Number(it.sgst_amount || 0) + Number(it.igst_amount || 0)) * ratio;
     return {
       product_id: it.product_id,
       product_name: it.product_name,
@@ -792,7 +792,7 @@ export default function Returns({ role = 'admin' }: { role?: 'admin' | 'cashier'
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium">
-                    {selectedReturn.items.map((it, idx) => (
+                    {(selectedReturn.items || []).map((it, idx) => (
                       <tr key={idx}>
                         <td className="py-2 px-3">
                           <div className="font-bold text-slate-800">{it.product_name}</div>
