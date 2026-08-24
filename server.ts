@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import { createClient } from '@libsql/client';
+import { createClient } from './db-adapter';
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
