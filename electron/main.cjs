@@ -89,8 +89,11 @@ function createWindow() {
   const dbPath = `file:${path.join(userDataDir, 'pos-machine-database.db')}`;
 
   if (app.isPackaged) {
+    const appDir = path.join(process.resourcesPath, 'app');
+    const nodeMods = path.join(appDir, 'node_modules');
     serverProcess = spawn(process.execPath, [serverPath], {
-      env: { ...process.env, NODE_ENV: 'production', PORT: '3001', ELECTRON_RUN_AS_NODE: '1', DB_PATH: dbPath },
+      env: { ...process.env, NODE_ENV: 'production', PORT: '3001', ELECTRON_RUN_AS_NODE: '1', DB_PATH: dbPath, NODE_PATH: nodeMods },
+      cwd: appDir,
       stdio: 'pipe',
       detached: process.platform !== 'win32'
     });
