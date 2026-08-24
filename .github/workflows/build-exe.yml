@@ -25,7 +25,10 @@ jobs:
         run: npm run build
 
       - name: Bundle Node.js Server
-        run: npx esbuild server.ts --bundle --platform=node --target=node20 --outfile=server.cjs --external:@libsql/client --external:sqlite3
+        run: npx esbuild server.ts --bundle --platform=node --target=node20 --outfile=server.cjs --external:@libsql/client --external:sqlite3 --external:libsql --external:@libsql/win32-x64-msvc --external:@neon-rs/load --external:detect-libc
+
+      - name: Rebuild native modules for Electron
+        run: npx electron-rebuild
 
       - name: Build Electron EXE
         run: npx electron-builder --win --x64 --publish never
