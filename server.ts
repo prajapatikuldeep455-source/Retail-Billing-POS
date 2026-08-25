@@ -2937,9 +2937,7 @@ server.on('error', (err: any) => {
     console.error(`ERROR: Port ${PORT} is already in use.`);
     console.error('Another instance of this application might be running in the background.');
     console.error('Please close it or free up the port, then try again.');
-    process.exit(1);
   } else {
     console.error('Server encountered an error:', err);
-    process.exit(1);
   }
 });
