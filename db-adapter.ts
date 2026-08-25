@@ -1,13 +1,12 @@
 /**
- * Drop-in replacement for @libsql/client using better-sqlite3.
+ * Drop-in replacement for @libsql/client using Node.js built-in node:sqlite.
  * Provides the same createClient / db.execute / db.transaction API
  * so that server.ts needs zero changes to its database calls.
  * 
- * Why: @libsql/client uses Neon/Rust native bindings that cannot be
- * rebuilt by electron-rebuild. better-sqlite3 uses node-gyp and is
- * the standard SQLite driver for Electron apps.
+ * Why: Node 22+ (and Electron 43+) has built-in SQLite, so we don't
+ * need to deal with native C++ rebuilding, ABI mismatches, or crashes!
  */
-import Database from 'better-sqlite3';
+import { DatabaseSync } from 'node:sqlite';
 import path from 'path';
 
 interface ExecuteInput {
@@ -33,7 +32,7 @@ interface LibSqlCompatClient {
   close(): void;
 }
 
-function executeOnDb(db: Database.Database, input: string | ExecuteInput): ExecuteResult {
+function executeOnDb(db: DatabaseSync, input: string | ExecuteInput): ExecuteResult {
   const sql = typeof input === 'string' ? input : input.sql;
   const args = typeof input === 'string' ? [] : (input.args || []);
 
@@ -44,19 +43,17 @@ function executeOnDb(db: Database.Database, input: string | ExecuteInput): Execu
   if (isSelect || hasReturning) {
     const stmt = db.prepare(sql);
     const rows = args.length > 0 ? stmt.all(...args) : stmt.all();
-    return { rows, rowsAffected: 0, lastInsertRowid: BigInt(0) };
+    return { rows: rows as any[], rowsAffected: 0, lastInsertRowid: BigInt(0) };
   } else {
     try {
       const stmt = db.prepare(sql);
       const info = args.length > 0 ? stmt.run(...args) : stmt.run();
       return {
         rows: [],
-        rowsAffected: info.changes,
+        rowsAffected: Number(info.changes),
         lastInsertRowid: BigInt(info.lastInsertRowid)
       };
     } catch (err: any) {
-      // Handle "CREATE TABLE IF NOT EXISTS" and similar DDL that better-sqlite3
-      // might handle slightly differently
       if (err.message?.includes('no tables specified')) {
         return { rows: [], rowsAffected: 0, lastInsertRowid: BigInt(0) };
       }
@@ -71,7 +68,6 @@ export function createClient(config: { url: string }): LibSqlCompatClient {
 
   if (url.startsWith('file:')) {
     dbPath = url.replace(/^file:/, '');
-    // Resolve relative paths
     if (!path.isAbsolute(dbPath)) {
       dbPath = path.resolve(dbPath);
     }
@@ -79,7 +75,7 @@ export function createClient(config: { url: string }): LibSqlCompatClient {
     dbPath = url;
   }
 
-  const db = new Database(dbPath);
+  const db = new DatabaseSync(dbPath);
 
   return {
     execute: async (input: string | ExecuteInput): Promise<ExecuteResult> => {
@@ -99,9 +95,7 @@ export function createClient(config: { url: string }): LibSqlCompatClient {
         rollback: async (): Promise<void> => {
           try {
             db.exec('ROLLBACK');
-          } catch (e) {
-            // Already rolled back or no transaction active
-          }
+          } catch (e) {}
         }
       };
     },

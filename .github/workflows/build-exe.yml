@@ -25,15 +25,7 @@ jobs:
         run: npm run build
 
       - name: Bundle Node.js Server
-        run: npx esbuild server.ts --bundle --platform=node --format=cjs --target=node20 --outfile=server.cjs --external:better-sqlite3
-
-      - name: Rebuild native modules for Electron
-        run: npx electron-builder install-app-deps
-        env:
-          npm_config_build_from_source: true
-
-      - name: Remove better-sqlite3 prebuilds to prevent ABI mismatch crashes
-        run: Remove-Item -Recurse -Force node_modules/better-sqlite3/prebuilds -ErrorAction SilentlyContinue
+        run: npx esbuild server.ts --bundle --platform=node --format=cjs --target=node22 --outfile=server.cjs --external:node:sqlite
 
       - name: Build Electron EXE
         run: npx electron-builder --win --x64 --publish never

@@ -10,7 +10,7 @@
     "dev": "concurrently \"npm run dev:ui\" \"npm run dev:server\"",
     "dev:electron": "concurrently -k \"npm run dev:ui\" \"npm run dev:server\" \"wait-on tcp:3000 tcp:3001 && electron .\"",
     "build": "vite build",
-    "build:server": "esbuild server.ts --bundle --platform=node --format=cjs --target=node20 --outfile=server.cjs --external:better-sqlite3",
+    "build:server": "esbuild server.ts --bundle --platform=node --format=cjs --target=node22 --outfile=server.cjs --external:node:sqlite",
     "preview": "vite preview",
     "clean": "rimraf dist server.cjs release",
     "lint": "tsc --noEmit",
@@ -21,7 +21,6 @@
   "dependencies": {
     "@google/genai": "^2.4.0",
     "@libsql/client": "^0.17.4",
-    "better-sqlite3": "^13.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
@@ -54,9 +53,7 @@
     ]
   },
   "devDependencies": {
-    "@electron/rebuild": "^3.7.1",
     "@tailwindcss/vite": "^4.1.14",
-    "@types/better-sqlite3": "^9.6.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/multer": "^2.2.0",
