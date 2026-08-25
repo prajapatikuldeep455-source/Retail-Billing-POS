@@ -29,6 +29,8 @@ jobs:
 
       - name: Rebuild native modules for Electron
         run: npx electron-builder install-app-deps
+        env:
+          npm_config_build_from_source: true
 
       - name: Remove better-sqlite3 prebuilds to prevent ABI mismatch crashes
         run: Remove-Item -Recurse -Force node_modules/better-sqlite3/prebuilds -ErrorAction SilentlyContinue
